@@ -2,6 +2,12 @@
     (:require  [clojure.algo.monads :refer :all])
     (:require [clojure.string :as str]))
 
+(defn- value-not-in-msg [vals]
+  (str "value is not one of [" (str/join ", " (map pr-str vals)) "]"))
+
+(defn- map-every-nth [f coll n]
+  (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
+
 (defn- as-integral [v]
   (if (number? v)
     (if (integer? v)
@@ -78,23 +84,73 @@
 (defn add-path-index [p index]
   (add-path p {:index index}))
 
-(defn field [obj key pf-then & [p-else]]
+(defn field [obj key pf & [pf-k p-def]]
   (if (instance? clojure.lang.IPersistentMap obj)
     (if (contains? obj key)
       (let [val (get obj key)]
-        (modify-failure (fn [msg] (str "failed to parse field " (name key) ": " msg))
-                        (add-path-key (pf-then val) key)))
-      (or p-else (fail (str "key " (name key) " not present"))))
+        (bind (modify-failure (fn [msg] (str "failed to parse field " (name key) ": " msg))
+                              (add-path-key (pf val) key))
+              (or pf-k return)))
+      (or p-def (fail (str "key " (name key) " not present"))))
     (fail "value is not an object")))
 
-(defn elem [ary idx pf-then & [p-else]]
+(defn field-if-present [obj key pf & [p-def]]
+  (field obj key pf nil (or p-def (return nil))))
+
+(defmacro field-case-if-present [obj key pf p-def & clauses]
+  (let [preds         (take-nth 2 clauses)
+        [clauses def] (if (even? (count clauses))
+                        [clauses
+                         `(fail ~(value-not-in-msg preds))]
+                        [(drop-last 1 clauses)
+                         `(~return ~(last clauses))])
+        clauses       (map-every-nth (fn [expr] `(~return ~expr)) clauses 2)]
+
+    `(field
+       ~obj
+       ~key
+       (fn [v#]
+         (~bind (~pf v#) (fn [v'#]
+                           (condp = v'# ~@clauses ~def))))
+       identity
+       ~p-def)))
+
+(defmacro field-case [obj key pf & clauses]
+  `(field-case-if-present ~obj ~key ~pf nil ~@clauses))
+
+(defn elem [ary idx pf & [pf-k p-def]]
   (if (vector? ary)
     (if (contains? ary idx)
       (let [val (get ary idx)]
-        (modify-failure (fn [msg] (str "failed to parse element " idx ": " msg))
-                        (add-path-index (pf-then val) idx)))
-      (or p-else (fail (str "element " idx " not present"))))
+        (bind (modify-failure (fn [msg] (str "failed to parse element " idx ": " msg))
+                        (add-path-index (pf val) idx))
+              (or pf-k return)))
+      (or p-def (fail (str "element " idx " not present"))))
     (fail "value is not an array")))
+
+(defn elem-if-present [ary idx pf & [p-def]]
+  (elem ary idx pf nil (or p-def (return nil))))
+
+(defmacro elem-case-if-present [ary idx pf p-def & clauses]
+  (let [preds         (take-nth 2 clauses)
+        [clauses def] (if (even? (count clauses))
+                        [clauses
+                         `(fail ~(value-not-in-msg preds))]
+                        [(drop-last 1 clauses)
+                         `(~return ~(last clauses))])
+        clauses       (map-every-nth (fn [expr] `(~return ~expr)) clauses 2)]
+
+    `(elem
+       ~ary
+       ~idx
+       (fn [v#]
+         (~bind (~pf v#) (fn [v'#]
+                           (condp = v'# ~@clauses ~def))))
+       identity
+       ~p-def)))
+
+(defmacro elem-case [ary idx pf & clauses]
+  `(elem-case-if-present ~ary ~idx ~pf nil ~@clauses))
 
 (defn- check [f msg]
   (fn [v]
@@ -126,6 +182,9 @@
                                   (add-path-index (pf idx itm) idx)))
                 items))))))
 
+(defn parse-vec-of [pf]
+  (parse-vec-of-indexed (fn [_ itm] (pf itm))))
+
 (defn parse-one-of [expected]
   (fn [v]
     (let [matches (filter #(= v %) expected)]
@@ -133,28 +192,20 @@
         (return (first matches))
         (fail (str "value is not one of [" (str/join ", " (map pr-str expected)) "]"))))))
 
-(defn parse-vec-of [pf]
-  (parse-vec-of-indexed (fn [_ itm] (pf itm))))
-
 (defn if-truthy [p pf-then & [p-else]]
-  (bind p
-        (fn [v]
-          (if v (pf-then v) (or p-else (return nil))))))
+  (bind p (fn [v]
+            (if v (pf-then v) (or p-else (return nil))))))
 
 (defn if-success [p pf-then & [p-else]]
   (let [success (fmap #(pf-then %) p)
         failure (return (or p-else (return nil)))]
     (mjoin (mplus success failure))))
 
-(defn if-contains [accessor val key pf-then & [p-else]]
-  (accessor val key pf-then (or p-else (return nil))))
-
 (defmacro parse-case [& clauses]
-  (let [keys          (take-nth 2 clauses)
-        msg           (str "value is not one of [" (str/join ", " (map pr-str keys)) "]")
+  (let [preds         (take-nth 2 clauses)
         [clauses def] (if (even? (count clauses))
                         [clauses
-                         `(fail ~msg)]
+                         `(fail ~(value-not-in-msg preds))]
                         [(drop-last 1 clauses)
                          (last clauses)])]
     `(fn [v#]

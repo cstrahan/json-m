@@ -42,19 +42,20 @@ failed to parse).
 ;; define some parsers
 (with-monad json-m
   (defn parse-address [obj]
-    (domonad
-      [type    (field obj :type (parse-one-of ["work" "home"]))
-       street  (field obj :street parse-string)]
-      (condp = type
-        "home" (HomeAddress. street)
-        "work" (WorkAddress. street))))
+    (field-case obj :type parse-string
+      "work" (domonad
+               [street (field obj :street parse-string)]
+               (WorkAddress. street))
+      "home" (domonad
+               [street (field obj :street parse-string)]
+               (HomeAddress. street))))
 
   (defn parse-person [obj]
     (domonad
       [fname   (field obj :first parse-string)
        lname   (field obj :last parse-string)
        age     (field obj :age parse-number)
-       address (if-contains field obj :address parse-address)]
+       address (field-if-present obj :address parse-address)]
       (Person. fname lname age address))))
 
 ;; let's try it out!

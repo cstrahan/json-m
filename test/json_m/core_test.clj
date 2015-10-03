@@ -30,7 +30,7 @@
     [fname   (field obj :first parse-string)
      lname   (field obj :last parse-string)
      age     (field obj :age parse-number)
-     address (if-contains field obj :address parse-address)]
+     address (field-if-present obj :address parse-address)]
     (Person. fname lname age address)))
 
 ;-------------------------------------------------------------------------------
@@ -53,6 +53,12 @@
                           "bar" (return :bar)
                           "baz" (return :baz)
                           (return :quux))
+                        "boom!"))))
+    (is (= :bar
+           (run-parser (field-case {:a 2.0} :a parse-integral
+                          1 (return :foo)
+                          2 (return :bar)
+                          3 (return :baz)
                         "boom!"))))
     (is (= "test"
            (run-parser (elem ["test"] 0 parse-string))))
@@ -94,6 +100,49 @@
     (is (= [0 1 2]
            (run-parser ((parse-vec-of-indexed (fn [idx itm] (return idx)))
                         [:x :y :z]))))
+    ;; == field-case ==
+    (is (thrown-with-msg? Exception (str->re "Error in $.a.b: failed to parse field a: failed to parse field b: value is not one of [\"x\", \"y\", \"z\"]")
+           (run-parser (field {:a {:b "oops!"}} :a
+                              (fn [v]
+                                (field-case v :b parse-string
+                                            "x" :foo
+                                            "y" :bar
+                                            "z" :baz))))))
+    (is (thrown-with-msg? Exception (str->re "Error in $.a: failed to parse field a: boom!")
+           (run-parser (field {:a {:b "x"}} :a
+                              (fn [v]
+                                (field-case v :b parse-string
+                                            "x" (fail "boom!")))))))
+    (is (thrown-with-msg? Exception (str->re "Error in $.a: failed to parse field a: uh-oh!")
+           (run-parser (field {:a {:b "oops!"}} :a
+                              (fn [v]
+                                (field-case v :b parse-string
+                                            "x" :foo
+                                            "y" :bar
+                                            "z" :baz
+                                            (fail "uh-oh!")))))))
+    ;; == elem-case ==
+    (is (thrown-with-msg? Exception (str->re "Error in $.a[0]: failed to parse field a: failed to parse element 0: value is not one of [\"x\", \"y\", \"z\"]")
+           (run-parser (field {:a ["oops!"]} :a
+                              (fn [v]
+                                (elem-case v 0 parse-string
+                                            "x" :foo
+                                            "y" :bar
+                                            "z" :baz))))))
+    (is (thrown-with-msg? Exception (str->re "Error in $.a: failed to parse field a: boom!")
+           (run-parser (field {:a ["x"]} :a
+                              (fn [v]
+                                (elem-case v 0 parse-string
+                                            "x" (fail "boom!")))))))
+    (is (thrown-with-msg? Exception (str->re "Error in $.a: failed to parse field a: uh-oh!")
+           (run-parser (field {:a ["oops!"]} :a
+                              (fn [v]
+                                (elem-case v 0 parse-string
+                                            "x" :foo
+                                            "y" :bar
+                                            "z" :baz
+                                            (fail "uh-oh!")))))))
+    ;; == parse-case ==
     (is (thrown-with-msg? Exception (str->re "Error in $: value is not one of [\"foo\", \"bar\", \"baz\"]")
            (run-parser ((parse-case
                           "foo" (return :foo)
