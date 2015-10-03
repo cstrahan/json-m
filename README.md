@@ -6,9 +6,10 @@ A Clojure library providing monadic parser combinators for JSON.
 
 As someone who implements web services, I need an effective tool for
 validating and parsing user input. After initially surveying the open
-source landscape, it looked like https://github.com/Prismatic/schema
-would be my best bet. However, while `schema` looks like an excellent
-tool, there are some parts of its design that I find unfortunate:
+source landscape, it looked like
+[prismatic/schema](https://github.com/Prismatic/schema) would be my best
+bet. However, while `schema` looks like an excellent tool, there are
+some parts of its design that I find unfortunate:
 
 * Many concepts. It breaks things into Schemas, Transformations and
   Coercions. I'd much prefer a simpler, more principled approach
