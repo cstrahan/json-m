@@ -42,8 +42,6 @@
            (run-parser ((parse-one-of ["foo" "bar" "baz"])
                         "baz"))))
     (is (= "test"
-           (run-parser (field {:a "test"} :a parse-string))))
-    (is (= "test"
            (run-parser (elem ["test"] 0 parse-string))))
     (is (= "test"
            (run-parser (field {:a "test"} :a parse-string))))
