@@ -148,3 +148,14 @@
 
 (defn if-contains [accessor val key pf-then & [p-else]]
   (accessor val key pf-then (or p-else (return nil))))
+
+(defmacro parse-case [& clauses]
+  (let [keys          (take-nth 2 clauses)
+        msg           (str "value is not one of [" (str/join ", " (map pr-str keys)) "]")
+        [clauses def] (if (even? (count clauses))
+                        [clauses
+                         `(fail ~msg)]
+                        [(drop-last 1 clauses)
+                         (last clauses)])]
+    `(fn [v#]
+       (condp = v# ~@clauses ~def))))

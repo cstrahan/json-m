@@ -41,6 +41,19 @@
     (is (= "baz"
            (run-parser ((parse-one-of ["foo" "bar" "baz"])
                         "baz"))))
+    (is (= :bar
+           (run-parser ((parse-case
+                          "foo" (return :foo)
+                          "bar" (return :bar)
+                          "baz" (return :baz))
+                        "bar"))))
+    (is (= :quux
+           (run-parser ((parse-case
+                          "foo" (return :foo)
+                          "bar" (return :bar)
+                          "baz" (return :baz)
+                          (return :quux))
+                        "boom!"))))
     (is (= "test"
            (run-parser (elem ["test"] 0 parse-string))))
     (is (= "test"
@@ -81,6 +94,12 @@
     (is (= [0 1 2]
            (run-parser ((parse-vec-of-indexed (fn [idx itm] (return idx)))
                         [:x :y :z]))))
+    (is (thrown-with-msg? Exception (str->re "Error in $: value is not one of [\"foo\", \"bar\", \"baz\"]")
+           (run-parser ((parse-case
+                          "foo" (return :foo)
+                          "bar" (return :bar)
+                          "baz" (return :baz))
+                        "boom!"))))
     (is (thrown-with-msg? Exception (str->re "Error in $: boom!")
            (run-parser (if-success (return :yay)
                                    (constantly (fail "boom!"))
