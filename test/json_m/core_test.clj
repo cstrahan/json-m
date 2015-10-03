@@ -76,13 +76,11 @@
                             :age   26
                             :address {:street "Main St"}}))))
     (is (= ["1" "2" "3"]
-           (run-parser (field {:a [1 2 3]}
-                              :a
-                              (parse-vec-of #(return (str %)))))))
+           (run-parser ((parse-vec-of #(return (str %)))
+                        [1 2 3]))))
     (is (= [0 1 2]
-           (run-parser (field {:a [:x :y :z]}
-                               :a
-                               (parse-vec-of-indexed (fn [idx itm] (return idx)))))))
+           (run-parser ((parse-vec-of-indexed (fn [idx itm] (return idx)))
+                        [:x :y :z]))))
     (is (thrown-with-msg? Exception (str->re "Error in $: boom!")
            (run-parser (if-success (return :yay)
                                    (constantly (fail "boom!"))
