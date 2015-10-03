@@ -56,7 +56,9 @@
                                    #(return (reverse %))
                                    (return :xyz)))))
     (is (= :xyz
-           (run-parser (if-success (fail "oops!") #(return (reverse %)) (return :xyz)))))
+           (run-parser (if-success (fail "oops!")
+                                   #(return (reverse %))
+                                   (return :xyz)))))
     (is (= :abc
            (run-parser (mplus (fail   "failure 1")
                               (fail   "failure 2")
