@@ -51,6 +51,10 @@
            (run-parser (field {:a 1.0} :a parse-number))))
     (is (= {:b 123}
            (run-parser (field {:a {:b 123}} :a parse-map))))
+    (is (= [3 2 1]
+           (run-parser (if-success (return [1 2 3]) #(return (reverse %)) (return :xyz)))))
+    (is (= :xyz
+           (run-parser (if-success (fail "oops!") #(return (reverse %)) (return :xyz)))))
     (is (= :abc
            (run-parser (mplus (fail   "failure 1")
                               (fail   "failure 2")
