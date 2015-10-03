@@ -4,7 +4,7 @@ A Clojure library providing monadic parser combinators for JSON.
 
 ## Why Monadic Parser Combinators?
 
-One of the neat thing about monads is that they can maintain some sort
+One of the neat things about monads is that they can maintain some sort
 of context or state. This is quite useful during parsing because it can
 automatically give you useful error messages when something fails to
 parse.
