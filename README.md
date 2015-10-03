@@ -15,7 +15,7 @@ some parts of its design that I find unfortunate:
   Coercions. I'd much prefer a simpler, more principled approach
   consisting of only a few, highly composable primitives.
 * Size. As of writing this, schema is over 2,600 LOC (excluding tests
-  and the project file), while this library consists of 150 LOC.
+  and the project file), while this library consists of less than 250 LOC.
 * Awkward looking code.
 
 By modeling the process of parsing as a monad, I can write code that looks
