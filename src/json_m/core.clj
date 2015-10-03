@@ -197,7 +197,7 @@
             (if v (pf-then v) (or p-else (return nil))))))
 
 (defn if-success [p pf-then & [p-else]]
-  (let [success (fmap #(pf-then %) p)
+  (let [success (fmap pf-then p)
         failure (return (or p-else (return nil)))]
     (mjoin (mplus success failure))))
 
