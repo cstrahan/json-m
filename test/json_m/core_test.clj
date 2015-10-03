@@ -52,7 +52,9 @@
     (is (= {:b 123}
            (run-parser (field {:a {:b 123}} :a parse-map))))
     (is (= [3 2 1]
-           (run-parser (if-success (return [1 2 3]) #(return (reverse %)) (return :xyz)))))
+           (run-parser (if-success (return [1 2 3])
+                                   #(return (reverse %))
+                                   (return :xyz)))))
     (is (= :xyz
            (run-parser (if-success (fail "oops!") #(return (reverse %)) (return :xyz)))))
     (is (= :abc
@@ -79,6 +81,10 @@
            (run-parser (field {:a [:x :y :z]}
                                :a
                                (parse-vec-of-indexed (fn [idx itm] (return idx)))))))
+    (is (thrown-with-msg? Exception (str->re "Error in $: boom!")
+           (run-parser (if-success (return :yay)
+                                   (constantly (fail "boom!"))
+                                   (return :nay)))))
     (is (thrown-with-msg? Exception (str->re "Error in $: value is not one of [\"foo\", \"bar\", \"baz\"]")
            (run-parser ((parse-one-of ["foo" "bar" "baz"])
                         "boom!"))))
