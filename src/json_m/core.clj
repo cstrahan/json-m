@@ -190,7 +190,7 @@
     (let [matches (filter #(= v %) expected)]
       (if (seq matches)
         (return (first matches))
-        (fail (str "value is not one of [" (str/join ", " (map pr-str expected)) "]"))))))
+        (fail (value-not-in-msg expected))))))
 
 (defn if-truthy [p pf-then & [p-else]]
   (bind p (fn [v]
